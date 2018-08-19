@@ -1,0 +1,42 @@
+$icon-font-path: '~bootstrap-sass/assets/fonts/bootstrap/';
+@import '~bootstrap-sass/assets/stylesheets/bootstrap/_mixins.scss';
+@import '~bootstrap-sass/assets/stylesheets/_bootstrap.scss';
+
+// can add Boostrap overrides, additional Sass/CSS below...
+#board {
+  margin: 100px;
+  height:402px;
+  width:402px;
+  border: 1px solid #000;
+  display: flex;
+  flex-direction: row-reverse;
+}
+
+.red {
+  height: 50px;
+  width:50px;
+  background-color: #f00;
+}
+
+.yellow {
+  height: 50px;
+  width:50px;
+  background-color: #ff0;
+}
+
+.black {
+  height: 50px;
+  width:50px;
+  background-color: #555;
+}
+
+.white {
+  height: 50px;
+  width:50px;
+  background-color: #fff;
+}
+
+img {
+  height: 50px;
+  width:50px;
+}
