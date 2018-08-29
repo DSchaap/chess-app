@@ -9,7 +9,13 @@ $icon-font-path: '~bootstrap-sass/assets/fonts/bootstrap/';
   width:402px;
   border: 1px solid #000;
   display: flex;
-  flex-direction: row-reverse;
+  flex-direction: column;
+  align-items: center
+}
+
+.row {
+  display: flex;
+  flex-direction: row;
 }
 
 .red {
@@ -38,5 +44,5 @@ $icon-font-path: '~bootstrap-sass/assets/fonts/bootstrap/';
 
 img {
   height: 50px;
-  width:50px;
+  width: 50px;
 }
