@@ -2,3 +2,5 @@ frontend/elm-stuff/
 frontend/node_modules/
 
 backend/node_modules/
+chess-ai/__pycache__
+*.pyc

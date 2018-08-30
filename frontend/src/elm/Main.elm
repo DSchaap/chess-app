@@ -13,14 +13,14 @@ import Json.Decode exposing (..)
 
 type alias Model = {
     board : Board
-    , selectedPiece: Selection
     , turn: Color
-    , gameOver: GameStatus
-    , enPassant: EnPassantStatus
-    , whiteKing: (Int, Int)
-    , blackKing: (Int, Int)
     , whiteCastlingRights: (Bool,Bool)
     , blackCastlingRights: (Bool,Bool)
+    , whiteKing: (Int, Int)
+    , blackKing: (Int, Int)
+    , enPassant: EnPassantStatus
+    , selectedPiece: Selection
+    , gameOver: GameStatus
     , legalMoves: List LegalMove
     , playerColor: Color
     , message : String
@@ -85,9 +85,12 @@ initialBoard = Dict.fromList [ ( ( 0,7 ), ( Piece Rook Black ( 0,7 ) ) )
 initialModel: ( Model, Cmd Msg )
 initialModel =
   let
-    modelWithoutMoves = Model initialBoard None White Active No ( 7,4 ) ( 0,4 ) (True,True) (True,True) [] White ""
+    modelWithoutMoves = Model initialBoard White (True,True) (True,True) ( 7,4 ) ( 0,4 ) No None Active [] White ""
   in
-    ( { modelWithoutMoves | legalMoves = allLegalMoves modelWithoutMoves White }, Cmd.none )
+    if (modelWithoutMoves.turn == modelWithoutMoves.playerColor) then
+      ( { modelWithoutMoves | legalMoves = allLegalMoves modelWithoutMoves }, Cmd.none )
+    else
+      ( { modelWithoutMoves | legalMoves = allLegalMoves modelWithoutMoves }, WebSocket.send server (encodeMoves <| allLegalMoves modelWithoutMoves) )
 
 
 type Denomination = King
@@ -123,20 +126,22 @@ update msg model =
                           <|Dict.remove piece.position
                             <| Dict.insert (row,col) ( newPiece ) model.board
                       enPassantStatus = checkEnPassant newPiece piece.position
-                      newModel = {model | board = newBoard, enPassant = enPassantStatus}
-                      newLegalMoves = allLegalMoves newModel <| changeColor model.turn
+                      newModel = {model | board = newBoard, enPassant = enPassantStatus, selectedPiece = None, turn = changeColor model.turn, enPassant = enPassantStatus}
+                      newLegalMoves = allLegalMoves newModel
                   in
                     case piece.denomination of
                       King ->
                         case model.turn of
                           White ->
-                            ( { model | board = newBoard, selectedPiece = None, turn = changeColor model.turn, enPassant = No, whiteKing = (row,col), gameOver = checkForMate newModel newLegalMoves <| changeColor model.turn, legalMoves = newLegalMoves} , commandMsg piece.color model.playerColor (encodeMoves newLegalMoves)  )
+                            ( { newModel | whiteKing = (row,col), gameOver = checkForMate newModel newLegalMoves, legalMoves = newLegalMoves, whiteCastlingRights = (False,False) } , commandMsg piece.color model.playerColor (encodeMoves newLegalMoves)  )
                           Black ->
-                            ( { model | board = newBoard, selectedPiece = None, turn = changeColor model.turn, enPassant = No, blackKing = (row,col), gameOver = checkForMate newModel newLegalMoves <| changeColor model.turn, legalMoves = newLegalMoves} , commandMsg piece.color model.playerColor (encodeMoves newLegalMoves) )
-                      Pawn ->
-                        ( { model | board = newBoard, selectedPiece = None, turn = changeColor model.turn, enPassant = enPassantStatus, gameOver = checkForMate newModel newLegalMoves <| changeColor model.turn, legalMoves = newLegalMoves } , commandMsg piece.color model.playerColor (encodeMoves newLegalMoves) )
+                            ( { newModel | blackKing = (row,col), gameOver = checkForMate newModel newLegalMoves, legalMoves = newLegalMoves, blackCastlingRights = (False,False) } , commandMsg piece.color model.playerColor (encodeMoves newLegalMoves) )
                       _ ->
-                        ( { model | board = newBoard, selectedPiece = None, turn = changeColor model.turn, enPassant = No, gameOver = checkForMate newModel newLegalMoves <| changeColor newModel.turn, legalMoves = newLegalMoves } , commandMsg piece.color model.playerColor (encodeMoves newLegalMoves) )
+                        case model.turn of
+                          White ->
+                            ( { newModel | gameOver = checkForMate newModel newLegalMoves, legalMoves = newLegalMoves, whiteCastlingRights = checkCastlingRights piece model.whiteCastlingRights } , commandMsg piece.color model.playerColor (encodeMoves newLegalMoves) )
+                          Black ->
+                            ( { newModel | gameOver = checkForMate newModel newLegalMoves, legalMoves = newLegalMoves, blackCastlingRights = checkCastlingRights piece model.blackCastlingRights } , commandMsg piece.color model.playerColor (encodeMoves newLegalMoves) )
                 None ->
                          ( model, Cmd.none )
         NewMessage message ->
@@ -167,22 +172,43 @@ checkQueen piece row =
 
 checkEnPassant: Piece -> (Int,Int) -> EnPassantStatus
 checkEnPassant piece (oldRow,oldCol) =
-  let
-    (newRow,newCol) = piece.position
-  in
-    if ( abs (oldRow - newRow) ) > 1 then
-      case piece.color of
-        Black ->
-          Yes (newRow-1,newCol)
-        White ->
-          Yes (newRow+1,newCol)
-    else
+  case piece.denomination of
+    Pawn ->
+      let
+        (newRow,newCol) = piece.position
+      in
+        if ( abs (oldRow - newRow) ) > 1 then
+          case piece.color of
+            Black ->
+              Yes (newRow-1,newCol)
+            White ->
+              Yes (newRow+1,newCol)
+        else
+          No
+    _ ->
       No
 
-checkForMate: Model -> List LegalMove -> Color -> GameStatus
-checkForMate model moves color =
+checkCastlingRights: Piece -> (Bool,Bool) -> (Bool,Bool)
+checkCastlingRights piece (oldCastleLeft,oldCastleRight) =
+  case piece.denomination of
+    Rook ->
+      let
+        (row,col) = piece.position
+      in
+        if (col == 0) then
+          (False, oldCastleRight)
+        else if (col == 7) then
+          (oldCastleLeft, False)
+        else
+          (oldCastleLeft,oldCastleRight)
+    _ ->
+      (oldCastleLeft,oldCastleRight)
+
+
+checkForMate: Model -> List LegalMove -> GameStatus
+checkForMate model moves =
   if ( moves == [] ) then
-    if isInCheck model color then
+    if isInCheck model model.turn then
       Checkmate
     else
       Stalemate
@@ -506,9 +532,9 @@ legalMovesBySquare model color const piece initialList =
   else
     initialList
 
-allLegalMoves: Model -> Color -> List LegalMove
-allLegalMoves model color =
-  Dict.foldr (legalMovesBySquare model color) [] model.board
+allLegalMoves: Model -> List LegalMove
+allLegalMoves model =
+  Dict.foldr (legalMovesBySquare model model.turn) [] model.board
 
 -- checks and path clearance --
 
@@ -558,7 +584,7 @@ isOnBoard: (Int,Int) -> Bool
 isOnBoard (row,col) =
   ((row > -1) && (col > -1) && (row < 8) && (col < 8))
 
--- First arguement is a vector with direction to check for clearance in
+-- First arguement is a vector that decides the direction to check
 -- Used to check paths that rooks, bishops, and queens can travel along
 clearPath: (Int,Int) -> Model -> (Int, Int) -> Color -> Set (Int,Int) -> Set (Int,Int)
 clearPath (v1,v2) model (row,col) pieceColor path =
