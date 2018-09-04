@@ -122,8 +122,21 @@ class Game(object):
                     self.blackCastlingRights = (boolLeft,False)
                 elif (oldCol == 7):
                     self.blackCastlingRights = (False,boolRight)
+        # Account for if rooks are captured to avoid key errors
+        if (newPosition == (0,0)):
+            (boolLeft,boolRight) = self.blackCastlingRights
+            self.blackCastlingRights = (False, boolRight)
+        elif (newPosition == (0,7)):
+            (boolLeft,boolRight) = self.blackCastlingRights
+            self.blackCastlingRights = (boolLeft, False)
+        elif (newPosition == (7,0)):
+            (boolLeft,boolRight) = self.whiteCastlingRights
+            self.whiteCastlingRights = (False, boolRight)
+        elif (newPosition == (7,7)):
+            (boolLeft,boolRight) = self.blackCastlingRights
+            self.whiteCastlingRights = (boolLeft, False)
         self.turn = self.__change_color(self.turn)
-        # ? self.board = board
+
 
     def __try_move(self,piece,newPosition):
         """Updates and produces a new board to test for moving into checks.
