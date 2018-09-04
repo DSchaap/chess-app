@@ -32,13 +32,13 @@ def boardToOneHot(board):
 
 def moveToOneHot(piece,newCoordinates):
 
-    ''' There will be a one hot vector used to represent
+    """ There will be a one hot vector used to represent
     all possible moves. It will be 4096x1 with the first
     64 entries corresponding to all the possible squares to
     move to from square (0,0) and the next 64 all the
     possible squares to move to from square (0,1) and so on.
     This function puts a 1 in the coordinate corresponding
-    to moving the piece provided to the square provided. '''
+    to moving the piece provided to the square provided. """
 
 
     outVec = np.zeros((4096,1))
@@ -51,9 +51,9 @@ def moveToOneHot(piece,newCoordinates):
 
 def oneHotToMove(onehot,board):
 
-    ''' The following function returns the corresponding move
+    """ The following function returns the corresponding move
     from the one hot representation given the current board
-    state. '''
+    state. """
 
     move = {}
     ind = onehot.argmax()
@@ -68,7 +68,7 @@ def oneHotToMove(onehot,board):
 
 def validMovesVec(model,legalMoves):
 
-    '''Creates a one hot vector of legal moves'''
+    """Creates a one hot vector of legal moves"""
 
     outVec = np.zeros((4096,1))
     for move in legalMoves:
