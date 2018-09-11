@@ -1,3 +1,5 @@
+import numpy as np
+
 class Piece(object):
     """This class defines a chess piece"""
     def __init__(self,denomination,color,position):
@@ -21,6 +23,28 @@ class Piece(object):
         , "King": self.__king_moves
        }
         return movesByPiece[self.denomination](board)
+
+    def one_hot(self):
+        oneHotPiece = { "WhitePawn": [1,0,0,0,0,0,0,0,0,0,0,0]
+        , "WhiteKnight":[0,1,0,0,0,0,0,0,0,0,0,0]
+        , "WhiteBishop":[0,0,1,0,0,0,0,0,0,0,0,0]
+        , "WhiteRook":[0,0,0,1,0,0,0,0,0,0,0,0]
+        , "WhiteQueen":[0,0,0,0,1,0,0,0,0,0,0,0]
+        , "WhiteKing":[0,0,0,0,0,0,1,0,0,0,0,0]
+        , "BlackPawn": [0,0,0,0,0,0,1,0,0,0,0,0]
+        , "BlackKnight":[0,0,0,0,0,0,0,1,0,0,0,0]
+        , "BlackBishop":[0,0,0,0,0,0,0,0,1,0,0,0]
+        , "BlackRook":[0,0,0,0,0,0,0,0,0,1,0,0]
+        , "BlackQueen":[0,0,0,0,0,0,0,0,0,0,1,0]
+        , "BlackKing":[0,0,0,0,0,0,0,0,0,0,0,1]
+        }
+        if (self.color == 1):
+            color = "White"
+        else:
+            color = "Black"
+        outVec = oneHotPiece[color + self.denomination]
+        return outVec
+
 
     def __clear_path(self,direction,board,currentSquare,pieceColor,path):
         """Checks for path of empty/ capturable squares in a direction

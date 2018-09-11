@@ -71,9 +71,9 @@ class MCTS():
 
         if s not in self.Ps:
             # leaf node
-            self.Ps[s], v = self.nnet.predict(canonicalBoard)
+            self.Ps[s], v = self.nnet.predict(self.game.one_hot(canonicalBoard))
             valids = self.game.getValidMoves(canonicalBoard, 1)
-            self.Ps[s] = self.Ps[s]*valids      # masking invalid moves
+            self.Ps[s] = np.multiply(self.Ps[s],valids)     # masking invalid moves
             sum_Ps_s = np.sum(self.Ps[s])
             if sum_Ps_s > 0:
                 self.Ps[s] /= sum_Ps_s    # renormalize
@@ -107,7 +107,9 @@ class MCTS():
                     best_act = a
 
         a = best_act
-        next_s, next_player = self.game.getNextState(canonicalBoard, 1, a)
+        onehot_a = np.zeros((4096,))
+        onehot_a[a] = 1
+        next_s, next_player = self.game.getNextState(canonicalBoard, 1, onehot_a)
         next_s = self.game.getCanonicalForm(next_s, next_player)
 
         v = self.search(next_s)
