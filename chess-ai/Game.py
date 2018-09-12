@@ -2,7 +2,6 @@ from Piece import Piece
 from Board import Board
 from Move import one_hot_to_move
 import numpy as np
-import copy
 
 class Game():
     """
@@ -94,8 +93,8 @@ class Game():
             nextBoard: board after applying action
             nextPlayer: player who plays in the next turn (should be -player)
         """
-        move = one_hot_to_move(action,board,player)
-        nextBoard = board.execute_move(board,move)
+        piece,newPosition = one_hot_to_move(action,board,player)
+        nextBoard = board.execute_move(board,piece,newPosition)
         nextPlayer = -1*player
         return nextBoard, nextPlayer
 
@@ -133,6 +132,10 @@ class Game():
                 return -player
             else:
                 return 1e-12
+        elif (board.noWins()):
+            return 1e-12
+        # elif (board.board["repetition"]):
+        #     return 1e-12
         else:
             return 0
 
@@ -157,7 +160,8 @@ class Game():
             board = board.board
             for square in board.keys():
                 if isinstance(square, tuple):
-                    piece = copy.deepcopy(board[square])
+                    oldPiece = board[square]
+                    piece = Piece(oldPiece.denomination,oldPiece.color,oldPiece.position)
                     (oldRow,oldCol) = piece.position
                     newRow = -oldRow + 7
                     newCol = oldCol

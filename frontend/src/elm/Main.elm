@@ -608,7 +608,7 @@ subscriptions model =
 
 -- communication with server --
 server: String
-server = "ws://127.0.0.1:3000"
+server = "http://localhost:3000/"
 
 encodeMoves : List LegalMove -> String
 encodeMoves legalMoves =

@@ -2,14 +2,17 @@ from Coach import Coach
 from Game import Game
 from NeuralNet import NeuralNet as nn
 from utils import *
+import sys
+
+sys.setrecursionlimit = 2000
 
 args = dotdict({
     'numIters': 1000,
     'numEps': 100,
-    'tempThreshold': 15,
+    'tempThreshold': 12,
     'updateThreshold': 0.6,
     'maxlenOfQueue': 200000,
-    'numMCTSSims': 25,
+    'numMCTSSims': 20,
     'arenaCompare': 40,
     'cpuct': 1,
 

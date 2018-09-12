@@ -23,62 +23,57 @@ class Board(object):
         """Returns True of the given color is in check and False otherwise"""
         return (kingPosition in self.__attacked_squares(board,-1*color))
 
-    def execute_move(self,inputBoard,move):
+    def execute_move(self,inputBoard,piece,newPosition):
         """Returns the updated board state after making the input move"""
         oldBoard = inputBoard.board
         board = dict(oldBoard)
-        piece = Piece(move.piece.denomination,move.piece.color,move.piece.position)
-        newPosition = move.newSquare
+        denomination = piece.denomination
+        color = piece.color
         (oldRow,oldCol) = piece.position
         (newRow,newCol) = newPosition
         oldEnPassant = oldBoard["enPassant"]
-        piece.position = newPosition
-        if ((piece.denomination == "Pawn") and (newRow == 0 or newRow == 7)):
-            piece.denomination = "Queen"
-        board[newPosition] = piece
-        board.pop((oldRow,oldCol))
+        if ((denomination == "Pawn") and (newRow == 0 or newRow == 7)):
+            denomination = "Queen"
         board["enPassant"] = None
-        if (piece.denomination == "King"):
-            if (piece.color == 1):
+        if (denomination == "King"):
+            if (color == 1):
                 board["whiteCastlingRights"] = (False,False)
                 board["whiteKing"] = newPosition
             else:
                 board["blackCastlingRights"] = (False,False)
                 board["blackKing"] = newPosition
             if ((newCol-oldCol)>1):
-                newRook = board[(newRow,7)]
-                newRook.position = (newRow,newCol-1)
-                board[(oldRow,newCol-1)] = newRook
+                rook = board[(newRow,7)]
+                board[(newRow,newCol-1)] = Piece("Rook",rook.color,(newRow,newCol-1))
                 board.pop((newRow,7))
             elif ((newCol - oldCol)<-1):
-                newRook = board[(newRow,0)]
-                newRook.position = (newRow,newCol+1)
-                board[(oldRow,newCol+1)] = newRook
+                rook = board[(newRow,0)]
+                board[(newRow,newCol+1)] = Piece("Rook",rook.color,(newRow,newCol+1))
                 board.pop((newRow,0))
-        elif (piece.denomination == "Pawn"):
+        elif (denomination == "Pawn"):
             if (newPosition == oldEnPassant):
-                if (piece.color == 1):
+                if (color == 1):
                     board.pop((newRow+1,newCol))
                 else:
                     board.pop((newRow-1,newCol))
             if (abs(newRow-oldRow)>1):
-                if (piece.color == 1):
+                if (color == 1):
                     board["enPassant"] = (newRow+1,newCol)
                 else:
                     board["enPassant"] = (newRow-1,newCol)
-        elif (piece.denomination == "Rook"):
-            if (piece.color == 1):
+        elif (denomination == "Rook"):
+            if (color == 1):
                 (boolLeft,boolRight) = board["whiteCastlingRights"]
                 if (oldCol == 0):
-                    board["whiteCastlingRights"] = (boolLeft,False)
-                elif (oldCol == 7):
                     board["whiteCastlingRights"] = (False,boolRight)
+                elif (oldCol == 7):
+                    board["whiteCastlingRights"] = (boolLeft,False)
             else:
                 (boolLeft,boolRight) = board["blackCastlingRights"]
                 if (oldCol == 0):
-                    board["blackCastlingRights"] = (boolLeft,False)
-                elif (oldCol == 7):
                     board["blackCastlingRights"] = (False,boolRight)
+                elif (oldCol == 7):
+                    board["blackCastlingRights"] = (boolLeft,False)
         # Account for if rooks are captured to avoid key errors
         if (newPosition == (0,0)):
             (boolLeft,boolRight) = board["blackCastlingRights"]
@@ -92,7 +87,29 @@ class Board(object):
         elif (newPosition == (7,7)):
             (boolLeft,boolRight) = board["whiteCastlingRights"]
             board["whiteCastlingRights"] = (boolLeft, False)
+        board[newPosition] = Piece(denomination,color,newPosition)
+        board.pop((oldRow,oldCol))
         return Board(board)
+
+    def noWins(self):
+        whiteMinorPieces = 0
+        blackMinorPieces = 0
+        for square in self.board.keys():
+            if isinstance(square, tuple):
+                piece = self.board[square]
+                if ((piece.denomination == "Queen") or (piece.denomination == "Rook") or (piece.denomination == "Pawn")):
+                    return False
+                elif ((piece.denomination == "Knight") or (piece.denomination == "Bishop")):
+                    if (piece.color == 1):
+                        whiteMinorPieces += 1
+                    else:
+                        blackMinorPieces += 1
+                else:
+                    pass
+        if (whiteMinorPieces > 1) or (blackMinorPieces >1):
+            return False
+        else:
+            return True
 
     def __try_move(self,board,piece,newPosition):
         """Updates and produces a new board to test for moving into checks.

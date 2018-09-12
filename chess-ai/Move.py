@@ -36,4 +36,4 @@ def one_hot_to_move(onehot,board,player_color):
         newRow = -newRow + 7
 
     piece = board[(oldRow,oldCol)]
-    return Move(piece,(newRow,newCol))
+    return piece,(newRow,newCol)
