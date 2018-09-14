@@ -90,7 +90,7 @@ initialModel =
     if (modelWithoutMoves.turn == modelWithoutMoves.playerColor) then
       ( { modelWithoutMoves | legalMoves = allLegalMoves modelWithoutMoves }, Cmd.none )
     else
-      ( { modelWithoutMoves | legalMoves = allLegalMoves modelWithoutMoves }, WebSocket.send server (encodeMoves <| allLegalMoves modelWithoutMoves) )
+      ( { modelWithoutMoves | legalMoves = allLegalMoves modelWithoutMoves }, Cmd.none )
 
 
 type Denomination = King
@@ -133,15 +133,27 @@ update msg model =
                       King ->
                         case model.turn of
                           White ->
-                            ( { newModel | whiteKing = (row,col), gameOver = checkForMate newModel newLegalMoves, legalMoves = newLegalMoves, whiteCastlingRights = (False,False) } , commandMsg piece.color model.playerColor (encodeMoves newLegalMoves)  )
+                            let
+                              updatedModel = { newModel | whiteKing = (row,col), gameOver = checkForMate newModel newLegalMoves, legalMoves = newLegalMoves, whiteCastlingRights = (False,False) }
+                            in
+                              (updatedModel, commandMsg piece.color model.playerColor (encodeModel updatedModel))
                           Black ->
-                            ( { newModel | blackKing = (row,col), gameOver = checkForMate newModel newLegalMoves, legalMoves = newLegalMoves, blackCastlingRights = (False,False) } , commandMsg piece.color model.playerColor (encodeMoves newLegalMoves) )
+                            let
+                              updatedModel = { newModel | blackKing = (row,col), gameOver = checkForMate newModel newLegalMoves, legalMoves = newLegalMoves, blackCastlingRights = (False,False) }
+                            in
+                              (updatedModel, commandMsg piece.color model.playerColor (encodeModel updatedModel))
                       _ ->
                         case model.turn of
                           White ->
-                            ( { newModel | gameOver = checkForMate newModel newLegalMoves, legalMoves = newLegalMoves, whiteCastlingRights = checkCastlingRights piece model.whiteCastlingRights } , commandMsg piece.color model.playerColor (encodeMoves newLegalMoves) )
+                            let
+                              updatedModel = { newModel | gameOver = checkForMate newModel newLegalMoves, legalMoves = newLegalMoves, whiteCastlingRights = checkCastlingRights piece model.whiteCastlingRights }
+                            in
+                              (updatedModel, commandMsg piece.color model.playerColor (encodeModel updatedModel))
                           Black ->
-                            ( { newModel | gameOver = checkForMate newModel newLegalMoves, legalMoves = newLegalMoves, blackCastlingRights = checkCastlingRights piece model.blackCastlingRights } , commandMsg piece.color model.playerColor (encodeMoves newLegalMoves) )
+                            let
+                              updatedModel = { newModel | gameOver = checkForMate newModel newLegalMoves, legalMoves = newLegalMoves, blackCastlingRights = checkCastlingRights piece model.blackCastlingRights }
+                            in
+                              (updatedModel, commandMsg piece.color model.playerColor (encodeModel updatedModel))
                 None ->
                          ( model, Cmd.none )
         NewMessage message ->
@@ -608,26 +620,61 @@ subscriptions model =
 
 -- communication with server --
 server: String
-server = "http://localhost:3000/"
+server = "ws://127.0.0.1:8765"
 
-encodeMoves : List LegalMove -> String
-encodeMoves legalMoves =
-  Json.Encode.encode 0 ( Json.Encode.list (List.map encodeMove legalMoves) )
+-- encodeMoves : List LegalMove -> String
+-- encodeMoves legalMoves =
+--   Json.Encode.encode 0 ( Json.Encode.list (List.map encodeMove legalMoves) )
+--
+-- encodeMove : LegalMove -> Json.Encode.Value
+-- encodeMove ( Move piece position ) =
+--     Json.Encode.object
+--       [ ("piece", (encodePiece piece) )
+--       , ("newPosition", Json.Encode.list ([ Json.Encode.int (Tuple.first position), Json.Encode.int (Tuple.second position)] ) )
+--       ]
+
+encodeBoard:  Board -> Json.Encode.Value
+encodeBoard board =
+    Json.Encode.object
+      <| List.map (\(k,v) -> (toString k, encodePiece v)) (Dict.toList board)
 
 encodePiece: Piece -> Json.Encode.Value
 encodePiece {denomination,color,position} =
     Json.Encode.object
       [("denomination", Json.Encode.string (toString denomination) )
-      , ("color", Json.Encode.string (toString color) )
+      , ("color", (encodeColor color) )
       , ("position", Json.Encode.list ([ Json.Encode.int (Tuple.first position), Json.Encode.int (Tuple.second position)] ) )
       ]
 
-encodeMove : LegalMove -> Json.Encode.Value
-encodeMove ( Move piece position ) =
-    Json.Encode.object
-      [ ("piece", (encodePiece piece) )
-      , ("newPosition", Json.Encode.list ([ Json.Encode.int (Tuple.first position), Json.Encode.int (Tuple.second position)] ) )
-      ]
+encodeColor : Color -> Json.Encode.Value
+encodeColor col =
+    case col of
+      White ->
+        Json.Encode.int 1
+      Black ->
+        Json.Encode.int -1
+
+encodeEnPassant : EnPassantStatus -> Json.Encode.Value
+encodeEnPassant enPassent =
+    case enPassent of
+      No ->
+        Json.Encode.null
+      Yes position ->
+        Json.Encode.list ([ Json.Encode.int (Tuple.first position), Json.Encode.int (Tuple.second position)] )
+
+encodeModel : Model -> String
+encodeModel {board, turn, whiteCastlingRights, blackCastlingRights, whiteKing, blackKing, enPassant} =
+    Json.Encode.encode 0
+      <| Json.Encode.object
+        [ ("board", (encodeBoard board))
+        , ("turn", (encodeColor turn))
+        , ("whiteCastlingRights", Json.Encode.list ([ Json.Encode.bool (Tuple.first whiteCastlingRights), Json.Encode.bool (Tuple.second whiteCastlingRights)] ) )
+        , ("blackCastlingRights", Json.Encode.list ([ Json.Encode.bool (Tuple.first blackCastlingRights), Json.Encode.bool (Tuple.second blackCastlingRights)] ) )
+        , ("whiteKing", Json.Encode.list ([ Json.Encode.int (Tuple.first whiteKing), Json.Encode.int (Tuple.second whiteKing)] ) )
+        , ("blackKing",Json.Encode.list ([ Json.Encode.int (Tuple.first blackKing), Json.Encode.int (Tuple.second blackKing)] ) )
+        , ("enPassant",  encodeEnPassant enPassant)
+        ]
+
 
 pieceDecoder : Decoder Piece
 pieceDecoder =
@@ -640,15 +687,15 @@ pieceDecoder =
 
 colorDecoder : Decoder Color
 colorDecoder =
-    Json.Decode.string
-        |> Json.Decode.andThen (\str ->
-           case str of
-                "Black" ->
+    Json.Decode.int
+        |> Json.Decode.andThen (\int ->
+           case int of
+                -1 ->
                     Json.Decode.succeed Black
-                "White" ->
+                1 ->
                     Json.Decode.succeed White
                 somethingElse ->
-                    Json.Decode.fail <| "Unknown color: " ++ somethingElse
+                    Json.Decode.fail <| "Unknown player: " ++ (toString somethingElse)
         )
 
 denominationDecoder : Decoder Denomination
