@@ -86,6 +86,8 @@ class Board(object):
             (boolLeft,boolRight) = board["whiteCastlingRights"]
             board["whiteCastlingRights"] = (boolLeft, False)
         board[newPosition] = Piece(denomination,color,newPosition)
+        board["recentMoves"].pop()
+        board["recentMoves"].insert(0,(piece.position,piece.denomination,newPosition))
         board.pop((oldRow,oldCol))
         return Board(board)
 
@@ -108,6 +110,10 @@ class Board(object):
             return False
         else:
             return True
+
+    def repetition(self):
+        (W1,B1,W2,B2,W3,B3) = self.board["recentMoves"]
+        return ((W1 == W3) and (B1 == B3) and (W1[0] == W2[2]) and (W2[0] == W1[2]) and (B1[0] == B2[2]) and (B2[0] == B1[2]))
 
     def __try_move(self,board,piece,newPosition):
         """Updates and produces a new board to test for moving into checks.

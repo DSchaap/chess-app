@@ -122,7 +122,7 @@ update msg model =
                 Selected piece ->
                   let
                       newPiece = { piece | position = (row,col), denomination = checkQueen piece row }
-                      newBoard = moveCastleOrPassant newPiece piece.position
+                      newBoard = moveCastleOrPassant newPiece piece.position model.enPassant
                           <|Dict.remove piece.position
                             <| Dict.insert (row,col) ( newPiece ) model.board
                       enPassantStatus = checkEnPassant newPiece piece.position
@@ -236,8 +236,8 @@ changeColor color =
         White ->
             Black
 
-moveCastleOrPassant: Piece -> (Int,Int)-> Board -> Board
-moveCastleOrPassant piece (oldRow,oldCol) board =
+moveCastleOrPassant: Piece -> (Int,Int)-> EnPassantStatus -> Board -> Board
+moveCastleOrPassant piece (oldRow,oldCol) enPassant board =
   let
     (newRow,newCol)  = piece.position
   in
@@ -262,14 +262,18 @@ moveCastleOrPassant piece (oldRow,oldCol) board =
         else
           board
       Pawn ->
-        if ( (newCol /= oldCol) ) then
-          case piece.color of
-            Black ->
-              Dict.remove (newRow-1, newCol) board
-            White ->
-              Dict.remove (newRow+1, newCol) board
-        else
-          board
+        case enPassant of
+          Yes enPassantSquare ->
+            if ( (newRow,newCol) == enPassantSquare ) then
+              case piece.color of
+                Black ->
+                  Dict.remove (newRow-1, newCol) board
+                White ->
+                  Dict.remove (newRow+1, newCol) board
+              else
+                board
+          No ->
+            board
       _ ->
         board
 

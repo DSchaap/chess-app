@@ -57,6 +57,7 @@ class Game():
             , "whiteKing": ( 7,4 ) # King position (easier for finding legal moves/checks quickly)
             , "blackKing": ( 0,4 )
             , "enPassant": None # Keeps track of en passant square if there is one (None if not)
+            , "recentMoves": [(0,0,0),(1,1,1),(2,2,2),(3,3,3),(4,4,4),(5,5,5)]
             }
         return Board(startBoard)
 
@@ -88,7 +89,7 @@ class Game():
         Input:
             board: current board
             player: current player (1 or -1)
-            action: action taken by current player
+            action: action taken by current player as a one-hot vector
         Returns:
             nextBoard: board after applying action
             nextPlayer: player who plays in the next turn (should be -player)
@@ -136,6 +137,9 @@ class Game():
             return 1e-12
         # elif (board.board["repetition"]):
         #     return 1e-12
+        elif (board.repetition()):
+            return 1e-12
+            print("yes")
         else:
             return 0
 
@@ -185,6 +189,7 @@ class Game():
             newBKingRow = -oldWKingRow + 7
             newBKingCol = oldWKingCol
             canonicalBoard["blackKing"] = (newBKingRow,newBKingCol)
+            canonicalBoard["recentMoves"] = board["recentMoves"]
             return Board(canonicalBoard)
 
     def getSymmetries(self, board, pi):

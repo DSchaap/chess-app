@@ -4,13 +4,13 @@ from chessAI.NeuralNet import NeuralNet as nn
 from chessAI.utils import *
 
 args = dotdict({
-    'numIters': 500,
-    'numEps': 1,
+    'numIters': 2,
+    'numEps': 2,
     'tempThreshold': 15,
-    'updateThreshold': 0.6,
+    'updateThreshold': 0.55,
     'maxlenOfQueue': 200000,
     'numMCTSSims': 15,
-    'arenaCompare': 40,
+    'arenaCompare': 2,
     'cpuct': 1,
 
     'checkpoint': './temp/',

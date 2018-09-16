@@ -17,7 +17,8 @@ class Move(object):
         outVec = np.zeros((4096,))
         (newRow,newCol) = self.newSquare
         (oldRow,oldCol) = self.piece.position
-        outVec[64*(oldRow*8+oldCol) + (newRow*8+newCol)] = 1
+        ind = 64*(oldRow*8+oldCol) + (newRow*8+newCol)
+        outVec[int(ind)] = 1
         return outVec
 
 
@@ -34,6 +35,6 @@ def one_hot_to_move(onehot,board,player_color):
     if (player_color == -1):
         oldRow = -oldRow + 7
         newRow = -newRow + 7
-    print(ind)
+    #print(ind)
     piece = board[(oldRow,oldCol)]
     return piece,(newRow,newCol)
