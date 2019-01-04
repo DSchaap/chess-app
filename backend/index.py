@@ -7,7 +7,7 @@ from chessAI.Board import Board
 from chessAI.Game import Game
 from chessAI.NeuralNet import NeuralNet as nn
 from chessAI.Move import one_hot_to_move
-from chessAI.MCTS import MCTS
+from chessAI.MCTS2 import MCTS
 from chessAI.utils import *
 
 args = dotdict({
@@ -23,7 +23,7 @@ args = dotdict({
 })
 
 g = Game()
-nnet = nn(g)
+nnet = nn(g,n_epochs=1)
 nnet.load_checkpoint(folder=args.checkpoint, filename='temp.pth.tar')
 mcts = MCTS(g, nnet, args)
 
@@ -48,12 +48,11 @@ def decodeBoard(boardJSON):
 
 def decideMove(game,board,curPlayer):
     canonicalBoard = game.getCanonicalForm(board, curPlayer)
-
-    actions = mcts.getActionProb(canonicalBoard, temp=0)
-    valids = g.getValidMoves(canonicalBoard,1)
-
-    move_vector = np.multiply(valids,actions)
-    piece,(newRow,newCol) = one_hot_to_move(move_vector,board,curPlayer)
+    pi = mcts.getActionProb(canonicalBoard, temp=0)
+    action = np.random.choice(len(pi), p=pi)
+    onehot_action = np.zeros((4096,))
+    onehot_action[action] = 1
+    piece,(newRow,newCol) = one_hot_to_move(onehot_action,board,curPlayer)
     return {"piece":{"denomination":piece.denomination,"color":piece.color,"position":piece.position}, "newPosition":[int(newRow),int(newCol)]}
 
 

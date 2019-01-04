@@ -58,6 +58,7 @@ class Game():
             , "blackKing": ( 0,4 )
             , "enPassant": None # Keeps track of en passant square if there is one (None if not)
             , "recentMoves": [(0,0,0),(1,1,1),(2,2,2),(3,3,3),(4,4,4),(5,5,5)]
+            , "turn": 1
             }
         return Board(startBoard)
 
@@ -95,7 +96,7 @@ class Game():
             nextPlayer: player who plays in the next turn (should be -player)
         """
         piece,newPosition = one_hot_to_move(action,board,player)
-        nextBoard = board.execute_move(board,piece,newPosition)
+        nextBoard = board.execute_move(board,piece,newPosition,player)
         nextPlayer = -1*player
         return nextBoard, nextPlayer
 
@@ -124,13 +125,14 @@ class Game():
                small non-zero value for draw.
 
         """
-        if (board.legal_moves(player) == []):
-            if (player == 1):
+        turn = board.board["turn"]
+        if (board.legal_moves(turn) == []):
+            if (turn == 1):
                 kingPosition = board.board["whiteKing"]
             else:
                 kingPosition = board.board["blackKing"]
-            if (board.is_in_check(board.board,kingPosition,player)):
-                return -player
+            if (board.is_in_check(board.board,kingPosition,turn)):
+                return -1*player*turn
             else:
                 return 1e-12
         elif (board.noWins()):
@@ -139,7 +141,6 @@ class Game():
         #     return 1e-12
         elif (board.repetition()):
             return 1e-12
-            print("yes")
         else:
             return 0
 
@@ -190,6 +191,7 @@ class Game():
             newBKingCol = oldWKingCol
             canonicalBoard["blackKing"] = (newBKingRow,newBKingCol)
             canonicalBoard["recentMoves"] = board["recentMoves"]
+            canonicalBoard["turn"] = 1
             return Board(canonicalBoard)
 
     def getSymmetries(self, board, pi):

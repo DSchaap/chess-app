@@ -1,6 +1,9 @@
 import math
 import numpy as np
+from multiprocessing import Pool, Manager, cpu_count
+import functools
 EPS = 1e-8
+manager = Manager()
 
 class MCTS():
     """
@@ -8,16 +11,17 @@ class MCTS():
     """
 
     def __init__(self, game, nnet, args):
+        manager = Manager()
         self.game = game
         self.nnet = nnet
         self.args = args
-        self.Qsa = {}       # stores Q values for s,a (as defined in the paper)
-        self.Nsa = {}       # stores #times edge s,a was visited
-        self.Ns = {}        # stores #times board s was visited
-        self.Ps = {}        # stores initial policy (returned by neural net)
+        self.Qsa = manager.dict()       # stores Q values for s,a (as defined in the paper)
+        self.Nsa = manager.dict()       # stores #times edge s,a was visited
+        self.Ns = manager.dict()        # stores #times board s was visited
+        self.Ps = manager.dict()        # stores initial policy (returned by neural net)
 
-        self.Es = {}        # stores game.getGameEnded ended for board s
-        self.Vs = {}        # stores game.getValidMoves for board s
+        # self.Es = {}        # stores game.getGameEnded ended for board s
+        # self.Vs = {}        # stores game.getValidMoves for board s
 
     def getActionProb(self, canonicalBoard, temp=1):
         """
@@ -27,11 +31,15 @@ class MCTS():
             probs: a policy vector where the probability of the ith action is
                    proportional to Nsa[(s,a)]**(1./temp)
         """
-        for i in range(self.args.numMCTSSims):
-            self.search(canonicalBoard,0)
+
+        # now you share the model and graph between processes
+        # in each process you can call this:
+        with Pool(processes = cpu_count()) as p:
+            scores = [p.apply_async(self.search, (canonicalBoard,)) for i in range(self.args['numMCTSSims'])]
+            [s.get() for s in scores]
 
         s = self.game.stringRepresentation(canonicalBoard)
-        counts = [self.Nsa[(s,a)] if (s,a) in self.Nsa else 0 for a in range(self.game.getActionSize())]
+        counts = [self.Nsa.get((s,a),0) for a in range(self.game.getActionSize())]
 
         if temp==0:
             bestA = np.argmax(counts)
@@ -43,8 +51,7 @@ class MCTS():
         probs = [x/float(sum(counts)) for x in counts]
         return probs
 
-
-    def search(self, canonicalBoard,recursionDepth):
+    def search(self, canonicalBoard,recursionDepth=0):
         """
         This function performs one iteration of MCTS. It is recursively called
         till a leaf node is found. The action chosen at each node is one that
@@ -63,11 +70,9 @@ class MCTS():
         recursionDepth += 1
         s = self.game.stringRepresentation(canonicalBoard)
 
-        if s not in self.Es:
-            self.Es[s] = self.game.getGameEnded(canonicalBoard, 1)
-        if self.Es[s]!=0:
-            # terminal node
-            return -self.Es[s]
+        Es = self.game.getGameEnded(canonicalBoard, 1)
+        if Es!=0:
+            return -Es
 
         if s not in self.Ps:
             # leaf node
@@ -86,11 +91,10 @@ class MCTS():
                 self.Ps[s] = self.Ps[s] + valids
                 self.Ps[s] /= np.sum(self.Ps[s])
 
-            self.Vs[s] = valids
             self.Ns[s] = 0
             return -v
 
-        valids = self.Vs[s]
+        valids = self.game.getValidMoves(canonicalBoard, 1)
         cur_best = -float('inf')
         best_act = -1
 
@@ -98,9 +102,9 @@ class MCTS():
         for a in range(self.game.getActionSize()):
             if valids[a]:
                 if (s,a) in self.Qsa:
-                    u = self.Qsa[(s,a)] + self.args.cpuct*self.Ps[s][a]*math.sqrt(self.Ns[s])/(1+self.Nsa[(s,a)])
+                    u = self.Qsa.get((s,a),0) + self.args['cpuct']*self.Ps.get(s,[0]*4096)[a]*math.sqrt(self.Ns.get(s,0))/(1+self.Nsa.get((s,a),0))
                 else:
-                    u = self.args.cpuct*self.Ps[s][a]*math.sqrt(self.Ns[s] + EPS)     # Q = 0 ?
+                    u = self.args['cpuct']*self.Ps.get(s,[0]*4096)[a]*math.sqrt(self.Ns.get(s,0) + EPS)     # Q = 0 ?
 
                 if u > cur_best:
                     cur_best = u
@@ -112,17 +116,13 @@ class MCTS():
         next_s, next_player = self.game.getNextState(canonicalBoard, 1, onehot_a)
         next_s = self.game.getCanonicalForm(next_s, next_player)
 
-        if (recursionDepth<200):
+        if (recursionDepth<975):
             v = self.search(next_s,recursionDepth)
         else:
-            _, v = self.nnet.predict(self.game.one_hot(next_s))
-        if (s,a) in self.Qsa:
-            self.Qsa[(s,a)] = (self.Nsa[(s,a)]*self.Qsa[(s,a)] + v)/(self.Nsa[(s,a)]+1)
-            self.Nsa[(s,a)] += 1
+            v = 1e-12
 
-        else:
-            self.Qsa[(s,a)] = v
-            self.Nsa[(s,a)] = 1
+        self.Qsa[(s,a)] = (self.Nsa.get((s,a),0)*self.Qsa.get((s,a),0) + v)/(self.Nsa.get((s,a),0)+1)
+        self.Nsa[(s,a)] = self.Nsa.get((s,a),0) + 1
 
-        self.Ns[s] += 1
+        self.Ns[s] = self.Ns.get(s,0) + 1
         return -v

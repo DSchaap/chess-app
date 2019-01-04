@@ -45,15 +45,22 @@ class Arena():
 
             valids = self.game.getValidMoves(self.game.getCanonicalForm(board, curPlayer),1)
             if valids[action]==0:
+                print('\n')
                 print(action)
                 assert valids[action] >0
             action_vec = np.zeros((4096,))
             action_vec[action] = 1
             board, curPlayer = self.game.getNextState(board, curPlayer, action_vec)
+            if it > 1000:
+                print('\n draw by move rule \n')
+                return 1e-12
+
         if verbose:
             assert(self.display)
             print("Game over: Turn ", str(it), "Result ", str(self.game.getGameEnded(board, 1)))
             self.display(board)
+        print(len(board.legal_moves(1)),board.is_in_check(board.board,board.board["whiteKing"],1),self.game.getGameEnded(board, 1))
+        print(len(board.legal_moves(-1)),board.is_in_check(board.board,board.board["blackKing"],-1),self.game.getGameEnded(board, -1))
         return self.game.getGameEnded(board, 1)
 
     def playGames(self, num, verbose=False):
@@ -84,11 +91,11 @@ class Arena():
             else:
                 draws+=1
             # bookkeeping + plot progress
-            eps += 1
             eps_time.update(time.time() - end)
             end = time.time()
             bar.suffix  = '({eps}/{maxeps}) Eps Time: {et:.3f}s | Total: {total:} | ETA: {eta:}'.format(eps=eps+1, maxeps=maxeps, et=eps_time.avg,
                                                                                                        total=bar.elapsed_td, eta=bar.eta_td)
+            eps += 1
             bar.next()
 
         self.player1, self.player2 = self.player2, self.player1
@@ -102,11 +109,11 @@ class Arena():
             else:
                 draws+=1
             # bookkeeping + plot progress
-            eps += 1
             eps_time.update(time.time() - end)
             end = time.time()
-            bar.suffix  = '({eps}/{maxeps}) Eps Time: {et:.3f}s | Total: {total:} | ETA: {eta:}'.format(eps=eps+1, maxeps=num, et=eps_time.avg,
+            bar.suffix  = '({eps}/{maxeps}) Eps Time: {et:.3f}s | Total: {total:} | ETA: {eta:}'.format(eps=eps+1, maxeps=maxeps, et=eps_time.avg,
                                                                                                        total=bar.elapsed_td, eta=bar.eta_td)
+            eps += 1
             bar.next()
 
         bar.finish()
