@@ -7,25 +7,21 @@ from chessAI.Board import Board
 from chessAI.Game import Game
 from chessAI.NeuralNet import NeuralNet as nn
 from chessAI.Move import one_hot_to_move
-from chessAI.MCTS2 import MCTS
-from chessAI.utils import *
+from chessAI.MCTS import MCTS
 
-args = dotdict({
-    'tempThreshold': 15,
+args = {
     'maxlenOfQueue': 200000,
     'numMCTSSims': 15,
     'cpuct': 1,
-
     'checkpoint': './temp/',
-    'load_model': False,
-    'load_folder_file': ('/dev/models/8x100x50','best.pth.tar'),
-    'numItersForTrainExamplesHistory': 20,
-})
+    'numItersForTrainExamplesHistory': 5,
+}
 
 g = Game()
-nnet = nn(g,n_epochs=1)
-nnet.load_checkpoint(folder=args.checkpoint, filename='temp.pth.tar')
-mcts = MCTS(g, nnet, args)
+nnet = nn(g)
+nnet.initialize_model()
+nnet.load_checkpoint(folder=args['checkpoint'], filename='temp.pth.tar')
+mcts = MCTS(g, [nnet], args)
 
 
 def decodeBoard(boardJSON):
@@ -48,7 +44,7 @@ def decodeBoard(boardJSON):
 
 def decideMove(game,board,curPlayer):
     canonicalBoard = game.getCanonicalForm(board, curPlayer)
-    pi = mcts.getActionProb(canonicalBoard, temp=0)
+    pi = mcts.getActionProb(canonicalBoard, temp=0,multiprocess=False)
     action = np.random.choice(len(pi), p=pi)
     onehot_action = np.zeros((4096,))
     onehot_action[action] = 1
@@ -65,6 +61,7 @@ async def sendMove(websocket, path):
     move = decideMove(g,board,curPlayer)
 
     encodedMove = json.dumps(move)
+    print(encodedMove)
     await websocket.send(encodedMove)
     print("> responded with move")
 

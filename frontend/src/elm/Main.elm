@@ -24,6 +24,7 @@ type alias Model = {
     , legalMoves: List LegalMove
     , playerColor: Color
     , message : String
+    , moveList: List String
     }
 
 type alias Board = Dict ( Int, Int ) Piece
@@ -85,7 +86,7 @@ initialBoard = Dict.fromList [ ( ( 0,7 ), ( Piece Rook Black ( 0,7 ) ) )
 initialModel: ( Model, Cmd Msg )
 initialModel =
   let
-    modelWithoutMoves = Model initialBoard White (True,True) (True,True) ( 7,4 ) ( 0,4 ) No None Active [] White ""
+    modelWithoutMoves = Model initialBoard White (True,True) (True,True) ( 7,4 ) ( 0,4 ) No None Active [] White "" []
   in
     if (modelWithoutMoves.turn == modelWithoutMoves.playerColor) then
       ( { modelWithoutMoves | legalMoves = allLegalMoves modelWithoutMoves }, Cmd.none )
@@ -126,7 +127,8 @@ update msg model =
                           <|Dict.remove piece.position
                             <| Dict.insert (row,col) ( newPiece ) model.board
                       enPassantStatus = checkEnPassant newPiece piece.position
-                      newModel = {model | board = newBoard, enPassant = enPassantStatus, selectedPiece = None, turn = changeColor model.turn, enPassant = enPassantStatus}
+                      newMoveList = updateMoveList model piece (row,col)
+                      newModel = {model | board = newBoard, enPassant = enPassantStatus, selectedPiece = None, turn = changeColor model.turn, enPassant = enPassantStatus, moveList = newMoveList}
                       newLegalMoves = allLegalMoves newModel
                   in
                     case piece.denomination of
@@ -282,7 +284,7 @@ moveCastleOrPassant piece (oldRow,oldCol) enPassant board =
 view: Model -> Html Msg
 view model =
   div [] [div [ id "board" ] ( List.map ( viewRow model ) (List.range 0 7) )
-    , div [] [] ]
+    , div [] [ text (toString model.moveList) ] ]
 
 viewRow: Model -> Int -> Html Msg
 viewRow model row =
@@ -361,6 +363,73 @@ viewPiece piece =
                     img [ src "https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Chess_qlt45.svg/90px-Chess_qlt45.svg.png" ] []
                 King ->
                     img [ src "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Chess_klt45.svg/90px-Chess_klt45.svg.png" ] []
+
+updateMoveList: Model -> Piece -> (Int,Int) -> List String
+updateMoveList model piece position =
+  model.moveList ++ [moveAnnotation model piece position]
+
+moveAnnotation: Model -> Piece -> (Int,Int) -> String
+moveAnnotation model piece position =
+    annotateDenomination model piece position ++ annotateSquare position
+
+annotateDenomination: Model -> Piece -> (Int,Int) -> String
+annotateDenomination model piece position=
+  case piece.denomination of
+    King ->
+      if ( isOccupied model position ) then
+        "Kx"
+      else
+        "K"
+    Queen ->
+      if ( isOccupied model position ) then
+        "Qx"
+      else
+        "Q"
+    Rook ->
+      if ( isOccupied model position ) then
+        "Rx"
+      else
+        "R"
+    Bishop ->
+      if ( isOccupied model position ) then
+        "Bx"
+      else
+        "B"
+    Knight ->
+      if ( isOccupied model position ) then
+        "Nx"
+      else
+        "N"
+    Pawn ->
+      if ( isOccupied model position ) then
+        (String.left 1 (annotateSquare piece.position)) ++  "x"
+      else
+        ""
+
+annotateSquare: (Int, Int) -> String
+annotateSquare (row, col) =
+  case col of
+    0 ->
+      "a" ++ toString row
+    1 ->
+      "b" ++ toString row
+    2 ->
+      "c" ++ toString row
+    3 ->
+      "d" ++ toString row
+    4 ->
+      "e" ++ toString row
+    5 ->
+      "f" ++ toString row
+    6 ->
+      "g" ++ toString row
+    7 ->
+      "h" ++ toString row
+    _ ->
+      ""
+
+
+
 
 -- piece movement --
 

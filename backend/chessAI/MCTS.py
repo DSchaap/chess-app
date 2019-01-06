@@ -4,16 +4,17 @@ from multiprocessing import Pool, Manager, cpu_count
 import functools
 EPS = 1e-8
 manager = Manager()
-
 class MCTS():
     """
     This class handles the MCTS tree.
     """
 
-    def __init__(self, game, nnet, args):
+    def __init__(self, game, nnets, args):
         manager = Manager()
         self.game = game
-        self.nnet = nnet
+        self.nnets = nnets
+        self.net_ind = manager.dict()
+        self.net_ind['ind'] = 0
         self.args = args
         self.Qsa = manager.dict()       # stores Q values for s,a (as defined in the paper)
         self.Nsa = manager.dict()       # stores #times edge s,a was visited
@@ -76,7 +77,9 @@ class MCTS():
 
         if s not in self.Ps:
             # leaf node
-            self.Ps[s], v = self.nnet.predict(self.game.one_hot(canonicalBoard))
+            prev_net_ind = self.net_ind['ind']
+            self.net_ind['ind'] = (self.net_ind['ind'] + 1) % 4
+            self.Ps[s], v = self.nnets[prev_net_ind].predict(self.game.one_hot(canonicalBoard))
             valids = self.game.getValidMoves(canonicalBoard, 1)
             self.Ps[s] = np.multiply(self.Ps[s],valids)     # masking invalid moves
             sum_Ps_s = np.sum(self.Ps[s])
@@ -116,7 +119,7 @@ class MCTS():
         next_s, next_player = self.game.getNextState(canonicalBoard, 1, onehot_a)
         next_s = self.game.getCanonicalForm(next_s, next_player)
 
-        if (recursionDepth<975):
+        if (recursionDepth<900):
             v = self.search(next_s,recursionDepth)
         else:
             v = 1e-12

@@ -88,7 +88,7 @@ class NeuralNet():
         image_tensor = Input(shape=(772,), name = 'input_layer')
         network_output = self.residual_network(image_tensor)
 
-        optimizer = Adam(lr=0.00001)
+        optimizer = Adam(lr=0.000005)
         model = Model(inputs=[image_tensor], outputs=[network_output])
         model.compile(loss=loss_function, optimizer=optimizer)
         model._make_predict_function()
@@ -142,7 +142,7 @@ class NeuralNet():
         if not os.path.exists(filepath):
             raise("No model in path {}".format(filepath))
         self.nnet.load_weights(filepath)
-
+        print('loaded weights')
 
 class KerasManager(BaseManager):
     pass

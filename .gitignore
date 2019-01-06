@@ -1,4 +1,7 @@
 frontend/elm-stuff/
 frontend/node_modules/
-
+backend/temp/
 *.pyc
+.DS_Store
+*.tar
+*.tar.examples
