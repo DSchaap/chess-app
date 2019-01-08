@@ -22,7 +22,7 @@ class Move(object):
         return outVec
 
 
-def one_hot_to_move(onehot,board,player_color):
+def one_hot_to_move(onehot,board,player_color,inCanonicalForm):
     """ The following function returns the corresponding move
     from the one hot representation given the current board
     state. """
@@ -32,7 +32,7 @@ def one_hot_to_move(onehot,board,player_color):
     newRow = (ind%64-newCol)/8
     oldCol = ((ind - (newRow*8+newCol))/64)%8
     oldRow = (((ind - (newRow*8+newCol))/64)-oldCol)/8
-    if (player_color == -1):
+    if (player_color == -1 and inCanonicalForm):
         oldRow = -oldRow + 7
         newRow = -newRow + 7
     piece = board[(oldRow,oldCol)]

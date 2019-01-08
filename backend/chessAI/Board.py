@@ -1,6 +1,7 @@
 from chessAI.Piece import Piece
 from chessAI.Move import Move
 import numpy as np
+import copy
 
 class Board(object):
     """This class defines a chess game state"""
@@ -30,7 +31,7 @@ class Board(object):
         denomination = piece.denomination
         (oldRow,oldCol) = piece.position
         (newRow,newCol) = newPosition
-        oldEnPassant = oldBoard["enPassant"]
+        oldEnPassant = board["enPassant"]
         if ((denomination == "Pawn") and (newRow == 0 or newRow == 7)):
             denomination = "Queen"
         board["enPassant"] = None
@@ -86,12 +87,11 @@ class Board(object):
             board["whiteCastlingRights"] = (boolLeft, False)
         board[newPosition] = Piece(denomination,curPlayer,newPosition)
         board.pop((oldRow,oldCol))
-        board["turn"] = -1*oldBoard["turn"]
-        board["recentMoves"].pop()
-        board["recentMoves"].insert(0,(piece.position,piece.denomination,newPosition))
+        board["turn"] = -1*board["turn"]
+        board["recentMoves"] = [(piece.position,piece.denomination,newPosition)] + board["recentMoves"][:5]
         return Board(board)
 
-    def noWins(self):
+    def no_wins(self):
         whiteMinorPieces = 0
         blackMinorPieces = 0
         for square in self.board.keys():
@@ -176,7 +176,7 @@ class Board(object):
             if isinstance(square, tuple):
                 piece = board[square]
                 if (piece.color == color):
-                    attacked = attacked + piece.moves(board, enPassant)
+                    attacked = attacked + piece.moves(board)
         attacked = list(set(attacked))
         return attacked
 
@@ -185,7 +185,7 @@ class Board(object):
         """Takes in a piece and filters all moves that are
         illegal due to moving into check."""
         board = self.board
-        moves = piece.moves(board,board["enPassant"])
+        moves = piece.moves(board)
         color = piece.color
         legalMoves = []
         for move in moves:

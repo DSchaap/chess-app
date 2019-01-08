@@ -5,11 +5,8 @@ import numpy as np
 
 class Game():
     """
-    This class specifies the base Game class. To define your own game, subclass
-    this class and implement the functions below. This works when the game is
-    two-player, adversarial and turn-based.
+    This class specifies the base Game class. T
     Use 1 for player1 and -1 for player2.
-    See othello/OthelloGame.py for an example implementation.
     """
     def __init__(self):
         pass
@@ -17,8 +14,7 @@ class Game():
     def getInitBoard(self):
         """
         Returns:
-            startBoard: a representation of the board (ideally this is the form
-                        that will be the input to your neural network)
+            startBoard: a representation of the board
         """
         startBoard = {  ( 0,7 ):  Piece("Rook", -1, ( 0,7 ))
             , ( 0,6 ): Piece("Knight", -1, ( 0,6 ))
@@ -58,7 +54,7 @@ class Game():
             , "blackKing": ( 0,4 )
             , "enPassant": None # Keeps track of en passant square if there is one (None if not)
             , "recentMoves": [(0,0,0),(1,1,1),(2,2,2),(3,3,3),(4,4,4),(5,5,5)]
-            , "turn": 1
+            , "turn": 1 #Keeps track of which players turn it is (1 for white, -1 for black)
             }
         return Board(startBoard)
 
@@ -135,7 +131,7 @@ class Game():
                 return -1*player*turn
             else:
                 return 1e-12
-        elif (board.noWins()):
+        elif (board.no_wins()):
             return 1e-12
         # elif (board.board["repetition"]):
         #     return 1e-12

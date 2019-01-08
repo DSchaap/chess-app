@@ -10,12 +10,12 @@ class Piece(object):
         self.color = color
         self.position = position
 
-    def moves(self,board,enPassant):
+    def moves(self,board):
         """Returns list of moves for any given piece
         according to only how basic piece movement rules work
         (not accounting for moves that depend on other piece positions, like
         moving into checks or castling)"""
-        movesByPiece = { "Pawn": (lambda board: self.__pawn_moves(board,enPassant))
+        movesByPiece = { "Pawn": self.__pawn_moves
         , "Knight": self.__knight_moves
         , "Bishop": self.__bishop_moves
         , "Rook": self.__rook_moves
@@ -65,7 +65,8 @@ class Piece(object):
                 path.append((row+v1 ,col+v2))
                 return self.__clear_path(direction,board,(row+v1 ,col+v2),pieceColor,path)
 
-    def __pawn_moves(self,board,enPassant):
+    def __pawn_moves(self,board):
+        enPassant = board["enPassant"]
         possible = []
         (row,col) = self.position
         occupied = board.keys()
@@ -125,7 +126,6 @@ class Piece(object):
     def __bishop_moves(self,board):
         (row,col) = self.position
         color = self.color
-        occupied = board.keys()
         possible = self.__clear_path((1,1),board,(row,col),color,[]) + self.__clear_path((-1,1),board,(row,col),color,[]) + self.__clear_path((1,-1),board,(row,col),color,[]) + self.__clear_path((-1,-1),board,(row,col),color,[])
         return possible
 
@@ -133,7 +133,6 @@ class Piece(object):
     def __rook_moves(self,board):
         (row,col) = self.position
         color = self.color
-        occupied = board.keys()
         possible = self.__clear_path((1,0),board,(row,col),color,[]) + self.__clear_path((-1,0),board,(row,col),color,[]) + self.__clear_path((0,1),board,(row,col),color,[]) + self.__clear_path((0,-1),board,(row,col),color,[])
         return possible
 
